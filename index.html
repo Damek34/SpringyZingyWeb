@@ -51,7 +51,7 @@
                     <span id="loading-status">LOADING THE GAME</span>
                     <span id="loading-percent">0%</span>
                 </div>
-                <div class="progress-track" role="progressbar" aria-label="Postęp ładowania" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track">
+                <div class="progress-track" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track">
                     <div class="progress-fill" id="progress-fill"></div>
                     <div class="progress-glint"></div>
                 </div>
@@ -59,9 +59,9 @@
             </div>
 
             <div id="loading-error" class="loading-error" hidden>
-                <p>Nie udało się uruchomić gry.</p>
-                <span>Sprawdź połączenie i spróbuj ponownie.</span>
-                <button id="retry-button" type="button">SPRÓBUJ PONOWNIE ↻</button>
+                <p>Loading failed.</p>
+                <span>Check connection and try again.</span>
+                <button id="retry-button" type="button">TRY AGAIN ↻</button>
             </div>
 
             <div class="bottomline"><span>BUILT TO BOUNCE</span><span class="bottomline-mark">✦</span><span>2.0</span></div>
@@ -103,18 +103,18 @@
                 loadingPercent.textContent = percent + "%";
                 progressTrack.setAttribute("aria-valuenow", String(percent));
                 if (percent >= 88 && percent < 100) {
-                    loadingStatus.textContent = "DOPINANIE SZCZEGÓŁÓW";
-                    loadingDetail.textContent = "PRAWIE GOTOWE";
+                    loadingStatus.textContent = "FINALIZING DETAILS";
+                    loadingDetail.textContent = "ALMOST DONE";
                 } else if (percent >= 45 && percent < 88) {
-                    loadingStatus.textContent = "ŁADOWANIE ŚWIATA";
-                    loadingDetail.textContent = "ŁADOWANIE ZASOBÓW";
+                    loadingStatus.textContent = "LOADING WORLD";
+                    loadingDetail.textContent = "LOADING ASSETS";
                 }
             }
 
             function showError(message) {
                 console.error("Springy Zingy Web Player:", message);
-                loadingStatus.textContent = "COŚ POSZŁO NIE TAK";
-                loadingDetail.textContent = "NIE MOŻNA URUCHOMIĆ GRY";
+                loadingStatus.textContent = "SOMETHING WENT WRONG";
+                loadingDetail.textContent = "UNABLE TO LAUNCH THE GAME";
                 loadingError.hidden = false;
                 retryButton.addEventListener("click", function () {
                     window.location.reload();
@@ -124,16 +124,16 @@
             var script = document.createElement("script");
             script.src = loaderUrl;
             script.onload = function () {
-                loadingStatus.textContent = "URUCHAMIANIE SILNIKA";
-                loadingDetail.textContent = "TWORZENIE PLANSZY";
+                loadingStatus.textContent = "LAUNCHING ENGINE";
+                loadingDetail.textContent = "MAKING WORLD";
 
                 createUnityInstance(canvas, config, function (progress) {
                     // Zostawiamy ostatni procent na faktyczne uruchomienie silnika.
                     setProgress(Math.min(progress, 0.99));
                 }).then(function () {
                     setProgress(1);
-                    loadingStatus.textContent = "GOTOWE!";
-                    loadingDetail.textContent = "MIŁEJ ZABAWY";
+                    loadingStatus.textContent = "SUCCESS!";
+                    loadingDetail.textContent = "HAVE FUN!";
                     document.body.classList.add("game-ready");
                     window.setTimeout(function () {
                         loadingScreen.setAttribute("aria-hidden", "true");
