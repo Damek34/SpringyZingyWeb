@@ -1,133 +1,150 @@
-<!DOCTYPE html>
-<html lang="en-us">
-  <head>
+<!doctype html>
+<html lang="pl">
+<head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | Springy Zingy</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#08091b">
+    <title>Springy Zingy</title>
     <link rel="stylesheet" href="TemplateData/style.css">
-  </head>
-  <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
+</head>
+<body>
+    <!-- Animowane geometryczne tło widoczne podczas ładowania gry. -->
+    <canvas id="network-bg" aria-hidden="true"></canvas>
+
+    <!-- Unity przejmuje cały ekran po zakończeniu inicjalizacji. -->
+    <main id="unity-container" aria-label="Springy Zingy game">
+        <canvas id="unity-canvas" tabindex="-1" aria-label="Springy Zingy"></canvas>
+    </main>
+
+    <!-- Własny splash/loading screen zamiast domyślnego brandingu Unity. -->
+    <section id="loading-screen" aria-live="polite" aria-label="Ładowanie gry">
+        <div class="loader-shell">
+            <div class="topline"><span class="topline-dot"></span> ENDLESS RUNNER <span class="topline-separator">/</span> WEB VERSION</div>
+
+            <div class="brand-emblem" aria-hidden="true">
+                <svg viewBox="0 0 100 100" role="presentation">
+                    <defs>
+                        <linearGradient id="emblemGradient" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#69e8ff"/>
+                            <stop offset="53%" stop-color="#9c66ff"/>
+                            <stop offset="100%" stop-color="#ff4fc8"/>
+                        </linearGradient>
+                        <filter id="emblemGlow" x="-70%" y="-70%" width="240%" height="240%">
+                            <feGaussianBlur stdDeviation="3.5" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                    </defs>
+                    <path d="M50 6 L88 28 L88 71 L50 94 L12 71 L12 28 Z" fill="none" stroke="url(#emblemGradient)" stroke-width="1.7" opacity=".9"/>
+                    <path d="M56 18 L33 53 L48 53 L42 80 L69 43 L53 43 Z" fill="url(#emblemGradient)" filter="url(#emblemGlow)"/>
+                    <circle cx="50" cy="50" r="43" fill="none" stroke="#7c8dff" stroke-width=".7" stroke-dasharray="2 8" opacity=".75"/>
+                </svg>
+                <span class="emblem-orbit orbit-one"></span>
+                <span class="emblem-orbit orbit-two"></span>
+            </div>
+
+            <h1 class="brand-title"><span class="brand-springy">SPRINGY</span><span class="brand-zingy">ZINGY</span></h1>
+            <p class="tagline">Avoid obstacles in a geometric world...</p>
+
+            <div class="loader-block">
+                <div class="loader-label-row">
+                    <span id="loading-status">LOADING THE GAME</span>
+                    <span id="loading-percent">0%</span>
+                </div>
+                <div class="progress-track" role="progressbar" aria-label="Postęp ładowania" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track">
+                    <div class="progress-fill" id="progress-fill"></div>
+                    <div class="progress-glint"></div>
+                </div>
+                <div class="loader-footnote"><span class="pulse-square"></span><span id="loading-detail">LOADING WORLD</span><span class="footnote-right">SZ-01</span></div>
+            </div>
+
+            <div id="loading-error" class="loading-error" hidden>
+                <p>Nie udało się uruchomić gry.</p>
+                <span>Sprawdź połączenie i spróbuj ponownie.</span>
+                <button id="retry-button" type="button">SPRÓBUJ PONOWNIE ↻</button>
+            </div>
+
+            <div class="bottomline"><span>BUILT TO BOUNCE</span><span class="bottomline-mark">✦</span><span>2.0</span></div>
         </div>
-      </div>
-      <div id="unity-warning"> </div>
-      <div id="unity-footer">
-        <div id="unity-logo-title-footer"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">Springy Zingy</div>
-      </div>
-    </div>
+        <div class="corner-label corner-tl">SZ<span> / </span>2026</div>
+        <div class="corner-label corner-br">EST. FOR THE NEXT BOUNCE</div>
+    </section>
+
+    <script src="TemplateData/loading.js"></script>
     <script>
-      var canvas = document.querySelector("#unity-canvas");
+        (function () {
+            "use strict";
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-        var warningBanner = document.querySelector("#unity-warning");
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-        }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
-      }
+            var buildUrl = "Build";
+            var loaderUrl = buildUrl + "/Web3.loader.js";
+            var canvas = document.querySelector("#unity-canvas");
+            var loadingScreen = document.querySelector("#loading-screen");
+            var progressFill = document.querySelector("#progress-fill");
+            var progressTrack = document.querySelector("#progress-track");
+            var loadingPercent = document.querySelector("#loading-percent");
+            var loadingStatus = document.querySelector("#loading-status");
+            var loadingDetail = document.querySelector("#loading-detail");
+            var loadingError = document.querySelector("#loading-error");
+            var retryButton = document.querySelector("#retry-button");
 
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/Web3.loader.js";
-      var config = {
-        arguments: [],
-        dataUrl: buildUrl + "/Web3.data",
-        frameworkUrl: buildUrl + "/Web3.framework.js",
-        codeUrl: buildUrl + "/Web3.wasm",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "Springy Zingy",
-        productVersion: "2.0",
-        showBanner: unityShowBanner,
-        // errorHandler: function(err, url, line) {
-        //    alert("error " + err + " occurred at line " + line);
-        //    // Return 'true' if you handled this error and don't want Unity
-        //    // to process it further, 'false' otherwise.
-        //    return true;
-        // },
-      };
-
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
-      // If you would like all file writes inside Unity Application.persistentDataPath
-      // directory to automatically persist so that the contents are remembered when
-      // the user revisits the site the next time, uncomment the following line:
-      // config.autoSyncPersistentDataPath = true;
-      // This autosyncing is currently not the default behavior to avoid regressing
-      // existing user projects that might rely on the earlier manual
-      // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
-      // expected to change.
-
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-        document.querySelector("#unity-container").className = "unity-mobile";
-        canvas.className = "unity-mobile";
-
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
-
-
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
-      }
-
-      document.querySelector("#unity-loading-bar").style.display = "block";
-
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                document.querySelector("#unity-loading-bar").style.display = "none";
-                document.querySelector("#unity-fullscreen-button").onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
-
-              }).catch((message) => {
-                alert(message);
-              });
+            var config = {
+                dataUrl: buildUrl + "/Web3.data",
+                frameworkUrl: buildUrl + "/Web3.framework.js",
+                codeUrl: buildUrl + "/Web3.wasm",
+                streamingAssetsUrl: "StreamingAssets",
+                companyName: "DefaultCompany",
+                productName: "Springy Zingy",
+                productVersion: "2.0"
             };
 
-      document.body.appendChild(script);
+            function setProgress(value) {
+                var percent = Math.max(0, Math.min(100, Math.round(value * 100)));
+                progressFill.style.width = percent + "%";
+                loadingPercent.textContent = percent + "%";
+                progressTrack.setAttribute("aria-valuenow", String(percent));
+                if (percent >= 88 && percent < 100) {
+                    loadingStatus.textContent = "DOPINANIE SZCZEGÓŁÓW";
+                    loadingDetail.textContent = "PRAWIE GOTOWE";
+                } else if (percent >= 45 && percent < 88) {
+                    loadingStatus.textContent = "ŁADOWANIE ŚWIATA";
+                    loadingDetail.textContent = "ŁADOWANIE ZASOBÓW";
+                }
+            }
 
+            function showError(message) {
+                console.error("Springy Zingy Web Player:", message);
+                loadingStatus.textContent = "COŚ POSZŁO NIE TAK";
+                loadingDetail.textContent = "NIE MOŻNA URUCHOMIĆ GRY";
+                loadingError.hidden = false;
+                retryButton.addEventListener("click", function () {
+                    window.location.reload();
+                }, { once: true });
+            }
+
+            var script = document.createElement("script");
+            script.src = loaderUrl;
+            script.onload = function () {
+                loadingStatus.textContent = "URUCHAMIANIE SILNIKA";
+                loadingDetail.textContent = "TWORZENIE PLANSZY";
+
+                createUnityInstance(canvas, config, function (progress) {
+                    // Zostawiamy ostatni procent na faktyczne uruchomienie silnika.
+                    setProgress(Math.min(progress, 0.99));
+                }).then(function () {
+                    setProgress(1);
+                    loadingStatus.textContent = "GOTOWE!";
+                    loadingDetail.textContent = "MIŁEJ ZABAWY";
+                    document.body.classList.add("game-ready");
+                    window.setTimeout(function () {
+                        loadingScreen.setAttribute("aria-hidden", "true");
+                    }, 800);
+                }).catch(showError);
+            };
+            script.onerror = function () {
+                showError("Nie udało się pobrać pliku Unity loader: " + loaderUrl);
+            };
+            document.body.appendChild(script);
+        }());
     </script>
-  </body>
+</body>
 </html>
