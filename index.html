@@ -72,80 +72,143 @@
     </section>
 
     <script src="TemplateData/loading.js"></script>
-    <script>
-        (function () {
-            "use strict";
+    
+<script>
+(function () {
+    "use strict";
 
-            var buildUrl = "Build";
-            var loaderUrl = buildUrl + "/Web3.loader.js";
-            var canvas = document.querySelector("#unity-canvas");
-            var loadingScreen = document.querySelector("#loading-screen");
-            var progressFill = document.querySelector("#progress-fill");
-            var progressTrack = document.querySelector("#progress-track");
-            var loadingPercent = document.querySelector("#loading-percent");
-            var loadingStatus = document.querySelector("#loading-status");
-            var loadingDetail = document.querySelector("#loading-detail");
-            var loadingError = document.querySelector("#loading-error");
-            var retryButton = document.querySelector("#retry-button");
+    // Inicjalizacja Telegram Mini App.
+    var tg = window.Telegram && window.Telegram.WebApp;
 
-            var config = {
-                dataUrl: buildUrl + "/Web3.data",
-                frameworkUrl: buildUrl + "/Web3.framework.js",
-                codeUrl: buildUrl + "/Web3.wasm",
-                streamingAssetsUrl: "StreamingAssets",
-                companyName: "DefaultCompany",
-                productName: "Springy Zingy",
-                productVersion: "2.0"
-            };
+    if (tg) {
+        try {
+            tg.expand();
+            tg.ready();
 
-            function setProgress(value) {
-                var percent = Math.max(0, Math.min(100, Math.round(value * 100)));
-                progressFill.style.width = percent + "%";
-                loadingPercent.textContent = percent + "%";
-                progressTrack.setAttribute("aria-valuenow", String(percent));
-                if (percent >= 88 && percent < 100) {
-                    loadingStatus.textContent = "FINALIZING DETAILS";
-                    loadingDetail.textContent = "ALMOST DONE";
-                } else if (percent >= 45 && percent < 88) {
-                    loadingStatus.textContent = "LOADING WORLD";
-                    loadingDetail.textContent = "LOADING ASSETS";
-                }
+            console.log("[Telegram] Mini App ready.");
+            console.log("[Telegram] Platform:", tg.platform);
+            console.log("[Telegram] Version:", tg.version);
+        } catch (error) {
+            console.warn("[Telegram] Initialization warning:", error);
+        }
+    } else {
+        console.warn("[Telegram] WebApp API is unavailable.");
+    }
+
+    // Logowanie błędów JavaScript.
+    window.addEventListener("error", function (event) {
+        console.error(
+            "[WebGL] JavaScript error:",
+            event.message,
+            event.filename,
+            event.lineno
+        );
+    });
+
+    window.addEventListener("unhandledrejection", function (event) {
+        console.error(
+            "[WebGL] Unhandled promise rejection:",
+            event.reason
+        );
+    });
+
+    // Unity WebGL loader.
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/Web3.loader.js";
+
+    var canvas = document.querySelector("#unity-canvas");
+    var loadingScreen = document.querySelector("#loading-screen");
+    var progressFill = document.querySelector("#progress-fill");
+    var progressTrack = document.querySelector("#progress-track");
+    var loadingPercent = document.querySelector("#loading-percent");
+    var loadingStatus = document.querySelector("#loading-status");
+    var loadingDetail = document.querySelector("#loading-detail");
+    var loadingError = document.querySelector("#loading-error");
+    var retryButton = document.querySelector("#retry-button");
+
+    var config = {
+        dataUrl: buildUrl + "/Web3.data",
+        frameworkUrl: buildUrl + "/Web3.framework.js",
+        codeUrl: buildUrl + "/Web3.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Springy Zingy",
+        productVersion: "2.0"
+    };
+
+    function setProgress(value) {
+        var percent = Math.max(
+            0,
+            Math.min(100, Math.round(value * 100))
+        );
+
+        progressFill.style.width = percent + "%";
+        loadingPercent.textContent = percent + "%";
+        progressTrack.setAttribute(
+            "aria-valuenow",
+            String(percent)
+        );
+
+        if (percent >= 88 && percent < 100) {
+            loadingStatus.textContent = "FINALIZING DETAILS";
+            loadingDetail.textContent = "ALMOST DONE";
+        } else if (percent >= 45 && percent < 88) {
+            loadingStatus.textContent = "LOADING WORLD";
+            loadingDetail.textContent = "LOADING ASSETS";
+        }
+    }
+
+    function showError(error) {
+        console.error("Springy Zingy Web Player:", error);
+
+        loadingStatus.textContent = "SOMETHING WENT WRONG";
+        loadingDetail.textContent = "UNABLE TO LAUNCH THE GAME";
+        loadingError.hidden = false;
+
+        retryButton.addEventListener("click", function () {
+            window.location.reload();
+        }, { once: true });
+    }
+
+    // Załaduj loader Unity.
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+
+    script.onload = function () {
+        loadingStatus.textContent = "LAUNCHING ENGINE";
+        loadingDetail.textContent = "MAKING WORLD";
+
+        createUnityInstance(
+            canvas,
+            config,
+            function (progress) {
+                setProgress(Math.min(progress, 0.99));
             }
+        ).then(function () {
+            setProgress(1);
 
-            function showError(message) {
-                console.error("Springy Zingy Web Player:", message);
-                loadingStatus.textContent = "SOMETHING WENT WRONG";
-                loadingDetail.textContent = "UNABLE TO LAUNCH THE GAME";
-                loadingError.hidden = false;
-                retryButton.addEventListener("click", function () {
-                    window.location.reload();
-                }, { once: true });
-            }
+            loadingStatus.textContent = "SUCCESS!";
+            loadingDetail.textContent = "HAVE FUN!";
 
-            var script = document.createElement("script");
-            script.src = loaderUrl;
-            script.onload = function () {
-                loadingStatus.textContent = "LAUNCHING ENGINE";
-                loadingDetail.textContent = "MAKING WORLD";
+            document.body.classList.add("game-ready");
 
-                createUnityInstance(canvas, config, function (progress) {
-                    // Zostawiamy ostatni procent na faktyczne uruchomienie silnika.
-                    setProgress(Math.min(progress, 0.99));
-                }).then(function () {
-                    setProgress(1);
-                    loadingStatus.textContent = "SUCCESS!";
-                    loadingDetail.textContent = "HAVE FUN!";
-                    document.body.classList.add("game-ready");
-                    window.setTimeout(function () {
-                        loadingScreen.setAttribute("aria-hidden", "true");
-                    }, 800);
-                }).catch(showError);
-            };
-            script.onerror = function () {
-                showError("Nie udało się pobrać pliku Unity loader: " + loaderUrl);
-            };
-            document.body.appendChild(script);
-        }());
-    </script>
+            window.setTimeout(function () {
+                loadingScreen.setAttribute("aria-hidden", "true");
+            }, 800);
+
+        }).catch(showError);
+    };
+
+    script.onerror = function () {
+        showError(
+            "Nie udało się pobrać pliku Unity loader: " + loaderUrl
+        );
+    };
+
+    document.body.appendChild(script);
+
+}());
+</script>
+
 </body>
 </html>
